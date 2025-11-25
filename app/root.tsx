@@ -6,6 +6,10 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MediaPlayerProvider } from "./context/MediaPlayerContext";
+import { useState } from "react";
+import MenuBar from "./components/MenuBar";
 
 import type { Route } from "./+types/root";
 import "./app.css";
@@ -24,6 +28,8 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
     <html lang="en">
       <head>
@@ -33,7 +39,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        {children}
+        <QueryClientProvider client={queryClient}>
+          <MediaPlayerProvider>
+            <div className="min-h-screen">
+              <MenuBar />
+              <div className="xl:ml-64 pt-16 xl:pt-0">
+                {children}
+              </div>
+            </div>
+          </MediaPlayerProvider>
+        </QueryClientProvider>
         <ScrollRestoration />
         <Scripts />
       </body>
