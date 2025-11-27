@@ -248,11 +248,7 @@ export interface Entity {
     roles: Role[];
     primary_photo?: string;
     primary_photo_thumbnail?: string;
-    primary_location?: Location;
-    images?: PhotoResponse[];
-    locations?: Location[];
-    website?: string;
-    followers_count?: number;
+    photos?: PhotoResponse[];
 }
 
 export interface PaginatedResponse<T> {
