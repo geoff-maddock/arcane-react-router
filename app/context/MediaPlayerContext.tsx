@@ -1,5 +1,6 @@
-import React, { useState, useEffect, type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { MediaPlayerContext } from './MediaPlayerContextDefinition';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface MediaPlayerProviderProps {
     children: ReactNode;
@@ -12,32 +13,14 @@ export const MediaPlayerProvider: React.FC<MediaPlayerProviderProps> = ({
     storageKey = 'mediaPlayersEnabled',
     defaultEnabled = true
 }) => {
-    const [mediaPlayersEnabled, setMediaPlayersEnabledState] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return defaultEnabled;
-        try {
-            const savedState = localStorage.getItem(storageKey);
-            return savedState ? JSON.parse(savedState) : defaultEnabled;
-        } catch (error) {
-            console.warn(`Failed to parse ${storageKey} from localStorage:`, error);
-            return defaultEnabled;
-        }
-    });
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(mediaPlayersEnabled));
-        } catch (error) {
-            console.warn(`Failed to save ${storageKey} to localStorage:`, error);
-        }
-    }, [mediaPlayersEnabled, storageKey]);
+    const [mediaPlayersEnabled, setMediaPlayersEnabledState] = useLocalStorage<boolean>(storageKey, defaultEnabled);
 
     const setMediaPlayersEnabled = (enabled: boolean) => {
         setMediaPlayersEnabledState(enabled);
     };
 
     const toggleMediaPlayers = () => {
-        setMediaPlayersEnabledState(prev => !prev);
+        setMediaPlayersEnabledState((prev) => !prev);
     };
 
     return (
@@ -50,3 +33,4 @@ export const MediaPlayerProvider: React.FC<MediaPlayerProviderProps> = ({
         </MediaPlayerContext.Provider>
     );
 };
+

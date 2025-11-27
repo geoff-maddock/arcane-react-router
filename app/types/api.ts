@@ -182,7 +182,7 @@ export interface Tag {
 }
 
 export interface RelatedTags {
-    [tagName: string]: number;
+    [key: string]: number;
 }
 
 export interface EntityType {

@@ -194,3 +194,43 @@ export function generateGoogleCalendarLink(event: {
 
     return url;
 }
+
+export function formatDate(dateString: string): string {
+    const options: Intl.DateTimeFormatOptions = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+        timeZone: 'America/New_York'
+    };
+    return new Date(dateString).toLocaleDateString('en-US', options);
+}
+
+export function formatDateTime(date: string | Date): string {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return format(d, "PPPp");
+}
+
+/**
+ * Format API error to user-friendly message
+ * @param error - The error object from the API response
+ * @returns A user-friendly error message
+ */
+export function formatApiError(error: any): string {
+    if (axios.isAxiosError(error) && error.response) {
+        // Server responded with a status other than 2xx
+        const status = error.response.status;
+        const statusText = error.response.statusText;
+        const url = error.response.config.url;
+        return `Error ${status}: ${statusText} (URL: ${url})`;
+    } else if (error.request) {
+        // Request was made but no response was received
+        return `No response received from the server. Please try again later.`;
+    } else {
+        // Something happened in setting up the request
+        return `Error in setting up the request: ${error.message}`;
+    }
+}

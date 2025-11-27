@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useLocalStorage } from './useLocalStorage';
 
 interface UseFilterToggleOptions {
     /**
@@ -22,28 +22,10 @@ interface UseFilterToggleOptions {
 export function useFilterToggle(options: UseFilterToggleOptions = {}) {
     const { storageKey = 'filtersVisible', defaultVisible = false } = options;
 
-    const [filtersVisible, setFiltersVisible] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return defaultVisible;
-        try {
-            const savedState = localStorage.getItem(storageKey);
-            return savedState ? JSON.parse(savedState) : defaultVisible;
-        } catch (error) {
-            console.warn(`Failed to parse ${storageKey} from localStorage:`, error);
-            return defaultVisible;
-        }
-    });
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(filtersVisible));
-        } catch (error) {
-            console.warn(`Failed to save ${storageKey} to localStorage:`, error);
-        }
-    }, [filtersVisible, storageKey]);
+    const [filtersVisible, setFiltersVisible] = useLocalStorage<boolean>(storageKey, defaultVisible);
 
     const toggleFilters = () => {
-        setFiltersVisible(prev => !prev);
+        setFiltersVisible((prev) => !prev);
     };
 
     return {
