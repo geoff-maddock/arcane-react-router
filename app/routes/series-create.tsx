@@ -1,0 +1,489 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import AjaxSelect from '@/components/AjaxSelect';
+import AjaxMultiSelect from '@/components/AjaxMultiSelect';
+import { api } from '@/lib/api';
+import { handleFormError } from '@/lib/errorHandler';
+import { useSlug } from '@/hooks/useSlug';
+import { useSearchOptions } from '@/hooks/useSearchOptions';
+import { CheckCircle, XCircle } from 'lucide-react';
+import { seriesEditSchema } from '@/validation/schemas';
+import ValidationSummary from '@/components/ValidationSummary';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { useQuery } from '@tanstack/react-query';
+import type { Event } from '@/types/api';
+import { SITE_NAME, DEFAULT_IMAGE } from '@/lib/seo';
+
+export function meta() {
+    const url = typeof window !== 'undefined' ? window.location.href : 'https://arcane.city/series/create';
+    return [
+        { title: `Create Series • ${SITE_NAME}` },
+        { property: 'og:url', content: `${url}` },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:title', content: `Create Series • ${SITE_NAME}` },
+        { property: 'og:image', content: DEFAULT_IMAGE },
+        { property: 'og:description', content: `Create a new series in the Pittsburgh Events Guide.` },
+        { name: 'description', content: `Create a new series in the Pittsburgh Events Guide.` },
+    ];
+}
+
+export default function SeriesCreate() {
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const fromEvent = searchParams.get('fromEvent');
+
+    // Fetch event data for creating series if fromEvent slug is provided
+    const { data: sourceEvent } = useQuery<Event | null>({
+        queryKey: ['event', fromEvent],
+        queryFn: async () => {
+            if (!fromEvent) return null;
+            const { data } = await api.get<Event>(`/events/${fromEvent}`);
+            return data;
+        },
+        enabled: !!fromEvent,
+        staleTime: 60_000,
+    });
+
+    const [formData, setFormData] = useState({
+        name: '',
+        slug: '',
+        short: '',
+        visibility_id: 1,
+        description: '',
+        event_type_id: '' as number | '',
+        promoter_id: '' as number | '',
+        venue_id: '' as number | '',
+        is_benefit: false,
+        presale_price: '',
+        door_price: '',
+        start_at: '',
+        end_at: '',
+        founded_at: '',
+        min_age: '',
+        primary_link: '',
+        ticket_link: '',
+        tag_list: [] as number[],
+        entity_list: [] as number[],
+        occurrence_type_id: '' as number | '',
+        occurrence_week_id: '' as number | '',
+        occurrence_day_id: '' as number | '',
+    });
+    const { name, slug, setName, setSlug, manuallyOverridden } = useSlug('', '');
+
+    const { data: visibilityOptions } = useSearchOptions('visibilities', '');
+    const { data: occurrenceTypeOptions } = useSearchOptions('occurrence-types', '', {}, { sort: 'id', direction: 'asc' });
+    const { data: occurrenceWeekOptions } = useSearchOptions('occurrence-weeks', '', {}, { sort: 'id', direction: 'asc' });
+    const { data: occurrenceDayOptions } = useSearchOptions('occurrence-days', '', {}, { sort: 'id', direction: 'asc' });
+    const { setValues: setFormValuesInternal, handleChange: baseHandleChange, handleBlur, errors, touched, validateForm, getFieldError, errorSummary, generalError, setGeneralError, applyExternalErrors } = useFormValidation({
+        initialValues: formData,
+        schema: seriesEditSchema, // Reusing edit schema as it has the same fields
+        buildValidationValues: (vals) => ({
+            name: name,
+            slug: slug,
+            short: vals.short,
+            description: vals.description,
+            presale_price: vals.presale_price,
+            door_price: vals.door_price,
+            start_at: vals.start_at,
+            end_at: vals.end_at,
+            primary_link: vals.primary_link,
+            ticket_link: vals.ticket_link,
+            founded_at: vals.founded_at,
+        })
+    });
+    const [nameCheck, setNameCheck] = useState<'idle' | 'unique' | 'duplicate'>('idle');
+    const [duplicateSeries, setDuplicateSeries] = useState<{ name: string; slug: string } | null>(null);
+
+    // Shared form field classes (light + dark) for consistent contrast
+    const fieldClasses = 'bg-white border-slate-300 text-slate-900 placeholder-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:placeholder-slate-400 focus-visible:ring-0 focus:border-slate-500 focus:dark:border-slate-400';
+
+    useEffect(() => {
+        if (visibilityOptions && visibilityOptions.length > 0) {
+            const publicOption = visibilityOptions.find(option => option.name.toLowerCase() === 'public');
+            if (publicOption && formData.visibility_id === 1) {
+                setFormData(prev => ({ ...prev, visibility_id: publicOption.id }));
+            }
+        }
+    }, [visibilityOptions, formData.visibility_id]);
+
+    // Pre-populate form data when creating series from an event
+    useEffect(() => {
+        if (sourceEvent && fromEvent) {
+            // Generate series name from event name
+            const seriesName = sourceEvent.name.replace(/\s+(#\d+|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}|January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*$/i, '').trim();
+            const seriesSlug = seriesName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+            setFormData(prev => ({
+                ...prev,
+                name: seriesName,
+                slug: seriesSlug,
+                short: sourceEvent.short || '',
+                description: sourceEvent.description || '',
+                event_type_id: (sourceEvent.event_type?.id ?? '') as number | '',
+                promoter_id: (sourceEvent.promoter?.id ?? '') as number | '',
+                venue_id: (sourceEvent.venue?.id ?? '') as number | '',
+                is_benefit: sourceEvent.is_benefit || false,
+                presale_price: sourceEvent.presale_price ? sourceEvent.presale_price.toString() : '',
+                door_price: sourceEvent.door_price ? sourceEvent.door_price.toString() : '',
+                min_age: sourceEvent.min_age ? sourceEvent.min_age.toString() : '',
+                ticket_link: sourceEvent.ticket_link || '',
+                tag_list: sourceEvent.tags?.map(tag => tag.id) || [],
+                entity_list: sourceEvent.entities?.map(entity => entity.id) || [],
+                // Clear date/time fields and occurrence settings - should be set manually
+                start_at: '',
+                end_at: '',
+                founded_at: '',
+                occurrence_type_id: '' as number | '',
+                occurrence_week_id: '' as number | '',
+                occurrence_day_id: '' as number | '',
+            }));
+
+            // Set the name and slug in the slug hook
+            setName(seriesName);
+            setSlug(seriesSlug);
+        }
+    }, [sourceEvent, fromEvent, setName, setSlug]);
+
+    useEffect(() => {
+        const name = formData.name.trim();
+        const slug = formData.slug.trim();
+        if (!name || !slug) {
+            setNameCheck('idle');
+            setDuplicateSeries(null);
+            return;
+        }
+        const controller = new AbortController();
+        const timer = setTimeout(async () => {
+            try {
+                const params = new URLSearchParams();
+                params.append('filters[name]', name);
+                params.append('filters[slug]', slug);
+                params.append('limit', '1');
+                const { data } = await api.get(`/series?${params.toString()}`, {
+                    signal: controller.signal,
+                });
+                if (data?.data?.length > 0) {
+                    const ser = data.data[0];
+                    setDuplicateSeries({ name: ser.name, slug: ser.slug });
+                    setNameCheck('duplicate');
+                } else {
+                    setDuplicateSeries(null);
+                    setNameCheck('unique');
+                }
+            } catch {
+                // ignore errors
+            }
+        }, 500);
+        return () => {
+            controller.abort();
+            clearTimeout(timer);
+        };
+    }, [formData.name, formData.slug]);
+
+    type FormState = typeof formData;
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+        const fieldName = target.name;
+        const value = (target as HTMLInputElement).type === 'checkbox' ? (target as HTMLInputElement).checked : target.value;
+        setFormData(prev => ({ ...prev, [fieldName]: value }));
+        baseHandleChange(e);
+        if (fieldName === 'name') {
+            setName(String(value));
+            if (!manuallyOverridden) queueMicrotask(() => setFormData(p => ({ ...p, slug })));
+        }
+        if (fieldName === 'slug') setSlug(String(value));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setGeneralError('');
+        setFormValuesInternal(v => ({ ...v }));
+        const ok = validateForm();
+        if (!ok) return;
+        try {
+            const payload = {
+                ...formData,
+                presale_price: formData.presale_price ? parseFloat(formData.presale_price) : undefined,
+                door_price: formData.door_price ? parseFloat(formData.door_price) : undefined,
+                event_type_id: formData.event_type_id ? Number(formData.event_type_id) : undefined,
+                promoter_id: formData.promoter_id ? Number(formData.promoter_id) : undefined,
+                venue_id: formData.venue_id ? Number(formData.venue_id) : undefined,
+                occurrence_type_id: formData.occurrence_type_id ? Number(formData.occurrence_type_id) : undefined,
+                occurrence_week_id: formData.occurrence_week_id ? Number(formData.occurrence_week_id) : undefined,
+                occurrence_day_id: formData.occurrence_day_id ? Number(formData.occurrence_day_id) : undefined,
+                min_age: formData.min_age ? Number(formData.min_age) : undefined,
+                tag_list: formData.tag_list,
+                entity_list: formData.entity_list,
+                start_at: formData.start_at ? `${formData.start_at}:00` : undefined,
+                end_at: formData.end_at ? `${formData.end_at}:00` : undefined,
+                founded_at: formData.founded_at ? `${formData.founded_at}:00` : undefined,
+            };
+            const { data } = await api.post('/series', payload);
+            navigate(`/series/${data.slug}`);
+        } catch (err) {
+            handleFormError(err, applyExternalErrors, setGeneralError);
+        }
+    };
+
+    const renderError = (field: string) => {
+        if (!touched[field] && !(errors[field] && errors[field].length)) return null;
+        const message = getFieldError(field as keyof FormState);
+        if (message) return <div className="text-red-500 text-sm">{message}</div>;
+        return null;
+    };
+
+    return (
+        <div className="max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto p-4 space-y-4">
+            <h1 className="text-2xl font-bold">
+                {fromEvent ? `Create Series${sourceEvent ? ` from ${sourceEvent.name}` : ''}` : 'Create Series'}
+            </h1>
+            {generalError && <div className="text-red-500">{generalError}</div>}
+            <ValidationSummary errorSummary={errorSummary} />
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <div className="flex items-center gap-2">
+                        <Input id="name" name="name" value={name} onChange={handleChange} onBlur={handleBlur} className={fieldClasses} />
+                        {nameCheck === 'unique' && <CheckCircle className="text-green-500" />}
+                        {nameCheck === 'duplicate' && <XCircle className="text-red-500" />}
+                    </div>
+                    {nameCheck === 'unique' && (
+                        <p className="text-green-500 text-sm">No other series found with the same name or slug.</p>
+                    )}
+                    {nameCheck === 'duplicate' && duplicateSeries && (
+                        <p className="text-red-500 text-sm">
+                            Another series found with the same name:{' '}
+                            <Link to={`/series/${duplicateSeries.slug}`} className="underline">
+                                {duplicateSeries.name}
+                            </Link>
+                            . Please verify this is not a duplicate.
+                        </p>
+                    )}
+                    {renderError('name')}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="slug">Slug</Label>
+                    <Input id="slug" name="slug" value={slug} onChange={handleChange} onBlur={handleBlur} className={fieldClasses} />
+                    {renderError('slug')}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="short">Short</Label>
+                    <textarea
+                        id="short"
+                        name="short"
+                        className="w-full border rounded p-2 bg-white border-slate-300 text-slate-900 placeholder-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:placeholder-slate-400 focus-visible:ring-0 focus:border-slate-500 focus:dark:border-slate-400"
+                        value={formData.short}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                    />
+                    {renderError('short')}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows={6}
+                        className="w-full border rounded p-2 bg-white border-slate-300 text-slate-900 placeholder-slate-500 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:placeholder-slate-400 focus-visible:ring-0 focus:border-slate-500 focus:dark:border-slate-400"
+                        value={formData.description}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                    />
+                    {renderError('description')}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="occurrence_type_id">Occurrence Type</Label>
+                        <Select
+                            value={formData.occurrence_type_id.toString()}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, occurrence_type_id: Number(value) }))}
+                        >
+                            <SelectTrigger className={fieldClasses} aria-label="Occurrence type">
+                                <SelectValue placeholder="Select occurrence type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {occurrenceTypeOptions?.map((option) => (
+                                    <SelectItem key={option.id} value={option.id.toString()}>
+                                        {option.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="occurrence_week_id">Occurrence Week</Label>
+                        <Select
+                            value={formData.occurrence_week_id.toString()}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, occurrence_week_id: Number(value) }))}
+                        >
+                            <SelectTrigger className={fieldClasses} aria-label="Occurrence week">
+                                <SelectValue placeholder="Select occurrence week" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {occurrenceWeekOptions?.map((option) => (
+                                    <SelectItem key={option.id} value={option.id.toString()}>
+                                        {option.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="occurrence_day_id">Occurrence Day</Label>
+                        <Select
+                            value={formData.occurrence_day_id.toString()}
+                            onValueChange={(value) => setFormData(prev => ({ ...prev, occurrence_day_id: Number(value) }))}
+                        >
+                            <SelectTrigger className={fieldClasses} aria-label="Occurrence day">
+                                <SelectValue placeholder="Select occurrence day" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {occurrenceDayOptions?.map((option) => (
+                                    <SelectItem key={option.id} value={option.id.toString()}>
+                                        {option.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="visibility_id">Visibility</Label>
+                        <Select value={String(formData.visibility_id)} onValueChange={(val) => setFormData((p) => ({ ...p, visibility_id: Number(val) }))}>
+                            <SelectTrigger id="visibility_id" className={fieldClasses}>
+                                <SelectValue>{visibilityOptions?.find(o => o.id === Number(formData.visibility_id))?.name}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {visibilityOptions?.map((option) => (
+                                    <SelectItem key={option.id} value={String(option.id)}>
+                                        {option.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {renderError('visibility_id')}
+                    </div>
+                    <AjaxSelect
+                        label="Event Type"
+                        endpoint="event-types"
+                        value={formData.event_type_id}
+                        onChange={(val) => {
+                            setFormData((p) => ({ ...p, event_type_id: val }));
+                            setFormValuesInternal((p: typeof formData) => ({ ...p, event_type_id: val }));
+                        }}
+                        placeholder="Type to search event types..."
+                        clientSideFiltering={true}
+                    />
+                    {renderError('event_type_id')}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <AjaxSelect
+                        label="Promoter"
+                        endpoint="entities"
+                        extraParams={{ 'filters[role]': 'Promoter' }}
+                        value={formData.promoter_id}
+                        onChange={(val) => setFormData((p) => ({ ...p, promoter_id: val }))}
+                        placeholder="Type to search promoters..."
+                    />
+                    {renderError('promoter_id')}
+                    <AjaxSelect
+                        label="Venue"
+                        endpoint="entities"
+                        extraParams={{ 'filters[role]': 'Venue' }}
+                        value={formData.venue_id}
+                        onChange={(val) => setFormData((p) => ({ ...p, venue_id: val }))}
+                        placeholder="Type to search venues..."
+                    />
+                    {renderError('venue_id')}
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="start_at">Start Time</Label>
+                        <Input type="datetime-local" id="start_at" name="start_at" value={formData.start_at} onChange={handleChange} onBlur={handleBlur} className={fieldClasses} />
+                        {renderError('start_at')}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="end_at">End Time</Label>
+                        <Input type="datetime-local" id="end_at" name="end_at" value={formData.end_at} onChange={handleChange} onBlur={handleBlur} className={fieldClasses} />
+                        {renderError('end_at')}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="founded_at">Founded At</Label>
+                        <Input type="datetime-local" id="founded_at" name="founded_at" value={formData.founded_at} onChange={handleChange} onBlur={handleBlur} className={fieldClasses} />
+                        {renderError('founded_at')}
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="presale_price">Presale Price</Label>
+                        <Input type="number" id="presale_price" name="presale_price" value={formData.presale_price} onChange={handleChange} onBlur={handleBlur} className={fieldClasses} />
+                        {renderError('presale_price')}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="door_price">Door Price</Label>
+                        <Input type="number" id="door_price" name="door_price" value={formData.door_price} onChange={handleChange} onBlur={handleBlur} className={fieldClasses} />
+                        {renderError('door_price')}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="min_age">Min Age</Label>
+                        <Input type="number" id="min_age" name="min_age" value={formData.min_age} onChange={handleChange} onBlur={handleBlur} className={fieldClasses} />
+                        {renderError('min_age')}
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="primary_link">Primary Link</Label>
+                        <Input id="primary_link" name="primary_link" value={formData.primary_link} onChange={handleChange} onBlur={handleBlur} className={fieldClasses} />
+                        {renderError('primary_link')}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="ticket_link">Ticket Link</Label>
+                        <Input id="ticket_link" name="ticket_link" value={formData.ticket_link} onChange={handleChange} onBlur={handleBlur} className={fieldClasses} />
+                        {renderError('ticket_link')}
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="checkbox"
+                            id="is_benefit"
+                            name="is_benefit"
+                            checked={formData.is_benefit}
+                            onChange={handleChange}
+                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <Label htmlFor="is_benefit">Is Benefit?</Label>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <AjaxMultiSelect
+                        label="Tags"
+                        endpoint="tags"
+                        value={formData.tag_list}
+                        onChange={(val) => setFormData((p) => ({ ...p, tag_list: val }))}
+                        placeholder="Search tags..."
+                    />
+                </div>
+                <div className="space-y-2">
+                    <AjaxMultiSelect
+                        label="Related Entities"
+                        endpoint="entities"
+                        value={formData.entity_list}
+                        onChange={(val) => setFormData((p) => ({ ...p, entity_list: val }))}
+                        placeholder="Search entities..."
+                    />
+                </div>
+                <div className="flex justify-end space-x-2">
+                    <Button type="button" variant="outline" onClick={() => navigate('/series')}>Cancel</Button>
+                    <Button type="submit">Create Series</Button>
+                </div>
+            </form>
+        </div>
+    );
+}

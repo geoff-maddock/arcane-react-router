@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTags } from '~/hooks/useTags';
 import TagFilters from '~/components/TagFilters';
 import { Pagination } from '~/components/Pagination';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { Card, CardContent } from '~/components/ui/card';
 import { Alert, AlertDescription } from '~/components/ui/alert';
 import { useLocalStorage } from '~/hooks/useLocalStorage';
@@ -12,7 +12,7 @@ import type { TagFilters as TagFiltersType } from '~/hooks/useTags';
 import TagCard from '~/components/TagCard';
 import { FilterContainer } from '~/components/FilterContainer';
 import { Button } from '~/components/ui/button';
-import { useSearchParams } from 'react-router';
+import { useSearchParams, Link } from 'react-router';
 import { authService } from '~/services/auth.service';
 import { useQuery } from '@tanstack/react-query';
 import PopularTags from '~/components/PopularTags';
@@ -131,6 +131,14 @@ export default function Tags() {
                             </p>
                         </div>
                         <div className="flex items-center gap-2 w-full md:w-auto">
+                            {user && (
+                                <Button asChild className="gap-2">
+                                    <Link to="/tags/create">
+                                        <Plus className="h-4 w-4" />
+                                        Create Tag
+                                    </Link>
+                                </Button>
+                            )}
                             <Button
                                 variant={filtersVisible ? "secondary" : "outline"}
                                 onClick={toggleFilters}

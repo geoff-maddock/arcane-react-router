@@ -38,16 +38,16 @@ export interface EventFiltersProps {
 }
 
 export interface SeriesFilters {
-    name: string;
-    venue: string;
-    promoter: string;
-    entity: string;
-    event_type: string;
-    tag: string;
+    name?: string;
+    venue?: string;
+    promoter?: string;
+    entity?: string;
+    event_type?: string;
+    tag?: string;
     founded_at?: DateRange;
-    occurrence_type: string;
-    occurrence_week: string;
-    occurrence_day: string;
+    occurrence_type?: string;
+    occurrence_week?: string;
+    occurrence_day?: string;
 }
 
 export interface SeriesFiltersProps {

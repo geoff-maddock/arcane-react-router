@@ -138,7 +138,7 @@ export default function YourEntities() {
     };
 
     // Calculate all images for lightbox
-    const allImages = data?.data.flatMap(entity => 
+    const allImages = data?.data.flatMap(entity =>
         entity.photos ? entity.photos.map(p => ({ src: p.path, alt: entity.name })) : []
     ) || [];
 
@@ -200,9 +200,9 @@ export default function YourEntities() {
                                 {data?.data && data.data.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
                                         {data.data.map((entity) => (
-                                            <EntityCard 
-                                                key={entity.id} 
-                                                entity={entity} 
+                                            <EntityCard
+                                                key={entity.id}
+                                                entity={entity}
                                                 allImages={allImages}
                                                 imageIndex={getImageIndex(entity.id)}
                                             />

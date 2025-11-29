@@ -246,9 +246,14 @@ export interface Entity {
     links: Link[];
     tags: Tag[];
     roles: Role[];
+    visibility?: VisibilityResponse;
+    primary_location?: LocationResponse;
     primary_photo?: string;
     primary_photo_thumbnail?: string;
     photos?: PhotoResponse[];
+    images?: PhotoResponse[];
+    locations?: LocationResponse[];
+    followers_count?: number;
 }
 
 export interface PaginatedResponse<T> {
@@ -270,6 +275,7 @@ export interface Series {
     venue?: EntityResponse;
     promoter?: EntityResponse;
     event_type?: EventType;
+    visibility?: VisibilityResponse;
     presale_price?: number;
     door_price?: number;
     min_age?: number;
