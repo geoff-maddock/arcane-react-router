@@ -35,5 +35,9 @@ export default [
     route("register/success", "routes/register-success.tsx"),
     route("password-recovery", "routes/password-recovery.tsx"),
     route("password/reset/:token", "routes/password-reset.tsx"),
-    route("account", "routes/account.tsx")
+    route("account", "routes/account.tsx"),
+    route("account/edit", "routes/account-edit.tsx"),
+    route("activity", "routes/activity.tsx"),
+    route("email/verify/:userId/:hash", "routes/email-verify.tsx"),
+    route("*", "routes/not-found.tsx")
 ] satisfies RouteConfig;

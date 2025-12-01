@@ -7,6 +7,32 @@ type NavigationContextValue = {
 
 const NavigationContext = createContext<NavigationContextValue | undefined>(undefined);
 
+/**
+ * Determines if a path should be excluded from navigation history.
+ * Edit and create pages should not be tracked as previous pages.
+ */
+function isExcludedFromHistory(path: string): boolean {
+    // Remove query params and hash for pattern matching
+    const pathname = path.split('?')[0].split('#')[0];
+    
+    // Exclude edit pages (ends with /edit)
+    if (pathname.endsWith('/edit')) {
+        return true;
+    }
+    
+    // Exclude create pages (ends with /create)
+    if (pathname.endsWith('/create')) {
+        return true;
+    }
+    
+    // Exclude password recovery and reset pages
+    if (pathname.includes('/password-recovery') || pathname.includes('/password/reset/')) {
+        return true;
+    }
+    
+    return false;
+}
+
 function getInitialPreviousPath(): string | null {
     if (typeof document === 'undefined' || typeof window === 'undefined') {
         return null;
@@ -23,7 +49,12 @@ function getInitialPreviousPath(): string | null {
             return null;
         }
 
-        return `${referrerUrl.pathname}${referrerUrl.search}${referrerUrl.hash}`;
+        // Don't set initial previous path if it's an edit/create page
+        if (isExcludedFromHistory(referrerPath)) {
+            return null;
+        }
+
+        return referrerPath;
     } catch {
         return null;
     }
@@ -32,15 +63,17 @@ function getInitialPreviousPath(): string | null {
 export function NavigationProvider({ children }: { children: ReactNode }) {
     const location = useLocation();
     const [previousPath, setPreviousPath] = useState<string | null>(() => getInitialPreviousPath());
-    const [currentPath, setCurrentPath] = useState<string | null>(null);
+    const [currentPath, setCurrentPath] = useState<string>(location.pathname + location.search + location.hash);
 
     useEffect(() => {
-        const newPath = `${location.pathname}${location.search}${location.hash}`;
-
-        if (currentPath && currentPath !== newPath) {
-            setPreviousPath(currentPath);
+        const newPath = location.pathname + location.search + location.hash;
+        
+        if (currentPath !== newPath) {
+             if (!isExcludedFromHistory(currentPath)) {
+                setPreviousPath(currentPath);
+            }
+            setCurrentPath(newPath);
         }
-        setCurrentPath(newPath);
     }, [location, currentPath]);
 
     const value = useMemo<NavigationContextValue>(() => ({ previousPath }), [previousPath]);
