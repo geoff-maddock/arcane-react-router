@@ -13,11 +13,11 @@ import { ArrowLeft } from 'lucide-react';
 import { useBackNavigation } from '../context/NavigationContext';
 // import type { Route } from './+types/account-edit';
 
-export function meta({}: any) {
-  return [
-    { title: "Edit Account" },
-    { name: "description", content: "Edit your account settings" },
-  ];
+export function meta({ }: any) {
+    return [
+        { title: "Edit Account" },
+        { name: "description", content: "Edit your account settings" },
+    ];
 }
 
 export default function AccountEdit() {

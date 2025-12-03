@@ -4,11 +4,11 @@ import { Button } from '../components/ui/button';
 import { userService } from '../services/user.service';
 // import type { Route } from './+types/email-verify';
 
-export function meta({}: any) {
-  return [
-    { title: "Email Verification" },
-    { name: "description", content: "Verify your email address to complete registration." },
-  ];
+export function meta({ }: any) {
+    return [
+        { title: "Email Verification" },
+        { name: "description", content: "Verify your email address to complete registration." },
+    ];
 }
 
 export default function EmailVerify() {
@@ -16,7 +16,7 @@ export default function EmailVerify() {
     const [searchParams] = useSearchParams();
     const expires = searchParams.get('expires');
     const signature = searchParams.get('signature');
-    
+
     const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'already-verified'>('loading');
     const [message, setMessage] = useState('');
 
