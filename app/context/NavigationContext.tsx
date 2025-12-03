@@ -14,22 +14,22 @@ const NavigationContext = createContext<NavigationContextValue | undefined>(unde
 function isExcludedFromHistory(path: string): boolean {
     // Remove query params and hash for pattern matching
     const pathname = path.split('?')[0].split('#')[0];
-    
+
     // Exclude edit pages (ends with /edit)
     if (pathname.endsWith('/edit')) {
         return true;
     }
-    
+
     // Exclude create pages (ends with /create)
     if (pathname.endsWith('/create')) {
         return true;
     }
-    
+
     // Exclude password recovery and reset pages
     if (pathname.includes('/password-recovery') || pathname.includes('/password/reset/')) {
         return true;
     }
-    
+
     return false;
 }
 
@@ -67,9 +67,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const newPath = location.pathname + location.search + location.hash;
-        
+
         if (currentPath !== newPath) {
-             if (!isExcludedFromHistory(currentPath)) {
+            if (!isExcludedFromHistory(currentPath)) {
                 setPreviousPath(currentPath);
             }
             setCurrentPath(newPath);
