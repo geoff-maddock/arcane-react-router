@@ -117,7 +117,7 @@ const EventCard = ({ event, allImages, imageIndex }: EventCardProps) => {
                     <CardHeader className="p-4 pb-2">
                         <div className="space-y-2">
                             <div className="flex justify-between items-start">
-                                <h3 className="line-clamp-2 text-xl font-semibold leading-tight text-gray-900">
+                                <h3 className="line-clamp-2 text-xl font-semibold leading-tight">
                                     <Link
                                         to={`/events/${event.slug}`}
                                         className="hover:text-primary transition-colors"

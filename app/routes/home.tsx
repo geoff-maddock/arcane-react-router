@@ -210,7 +210,7 @@ export default function Events() {
         <div className="mx-auto md:px-6 md:py-8 px-3 py-4 max-w-[2400px]">
           <div className="space-y-8">
             <div className="flex flex-col space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight text-gray-900">
+              <h1 className="text-4xl font-bold tracking-tight">
                 Event Listings
               </h1>
               <p className="text-lg text-gray-500">

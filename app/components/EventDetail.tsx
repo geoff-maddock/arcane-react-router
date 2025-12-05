@@ -51,7 +51,7 @@ export default function EventDetail({ slug, initialEvent }: { slug: string; init
     const navigate = useNavigate();
     const { mediaPlayersEnabled } = useMediaPlayerContext();
     const { backHref, isFallback } = useBackNavigation('/events');
-    const placeHolderImage = `${window.location.origin}/event-placeholder.png`;
+    const placeHolderImage = typeof window !== 'undefined' ? `${window.location.origin}/event-placeholder.png` : '/event-placeholder.png';
     // Embeds now handled via React Query below; these legacy states removed.
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
@@ -249,6 +249,13 @@ export default function EventDetail({ slug, initialEvent }: { slug: string; init
 
     // Replace newlines with <br /> tags in the description
     const formattedDescription = event.description ? event.description.replace(/\n/g, '<br />') : '';
+
+    // Sanitize HTML on the client side to avoid SSR issues with DOMPurify
+    const [sanitizedDescription, setSanitizedDescription] = useState('');
+
+    useEffect(() => {
+        setSanitizedDescription(sanitizeHTML(formattedDescription));
+    }, [formattedDescription]);
 
     return (
         <div className="min-h-screen">
@@ -462,7 +469,9 @@ export default function EventDetail({ slug, initialEvent }: { slug: string; init
                             {event.description && (
                                 <Card>
                                     <CardContent className="prose max-w-none p-6">
-                                        <div dangerouslySetInnerHTML={{ __html: sanitizeHTML(formattedDescription) }} />
+                                        {sanitizedDescription ? (
+                                            <div dangerouslySetInnerHTML={{ __html: sanitizedDescription }} />
+                                        ) : null}
                                     </CardContent>
                                 </Card>
                             )}
