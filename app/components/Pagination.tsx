@@ -100,7 +100,7 @@ export function Pagination({
                             <ChevronLeft className="h-4 w-4" />
                             Previous
                         </Button>
-                        <span className="text-sm text-gray-700 md:hidden">
+                        <span className="text-sm text-gray-700 px-2">
                             Page {currentPage} of {totalPages}
                         </span>
                         <Button
@@ -114,12 +114,6 @@ export function Pagination({
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>
-                    <nav className="hidden md:flex isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                        {/* Simple pagination for now, can be expanded to show page numbers */}
-                        <span className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0">
-                            Page {currentPage} of {totalPages}
-                        </span>
-                    </nav>
                 </div>
             </div>
         </div>

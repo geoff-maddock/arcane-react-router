@@ -213,7 +213,7 @@ export default function Events() {
               <h1 className="text-4xl font-bold tracking-tight">
                 Event Listings
               </h1>
-              <p className="text-lg text-gray-500">
+              <p className="text-lg">
                 Discover and explore upcoming events.
               </p>
               {user && (
